@@ -1,18 +1,6 @@
 <script setup lang="ts">
-const { profile, household } = useMe()
+const { profile } = useMe()
 const { money, signedMoney, date } = useFormat()
-
-const copied = ref(false)
-async function copyInvite() {
-  if (!household.value?.inviteCode) return
-  try {
-    await navigator.clipboard.writeText(household.value.inviteCode)
-    copied.value = true
-    setTimeout(() => (copied.value = false), 1500)
-  } catch {
-    /* بعض المتصفحات تمنع النسخ بدون https */
-  }
-}
 
 interface Balance {
   userId: string
@@ -52,29 +40,16 @@ const owedToMe = computed(() =>
 
 <template>
   <div class="dash">
-    <!-- الصف العلوي: الرصيد + كود الدعوة -->
-    <div class="top-grid">
-      <div class="card balance-card" :class="myBalance >= 0 ? 'pos' : 'neg'">
-        <div class="bc-label text-muted">
-          <AppIcon name="wallet" :size="18" /> رصيدك الآن
-        </div>
-        <div class="balance-amount num">{{ signedMoney(myBalance) }}</div>
-        <div class="balance-hint">
-          <template v-if="myBalance > 0">لك عند الآخرين</template>
-          <template v-else-if="myBalance < 0">مستحقّ عليك للآخرين</template>
-          <template v-else>حسابك مصفّى</template>
-        </div>
+    <!-- بطاقة الرصيد -->
+    <div class="card balance-card" :class="myBalance >= 0 ? 'pos' : 'neg'">
+      <div class="bc-label text-muted">
+        <AppIcon name="wallet" :size="18" /> رصيدك الآن
       </div>
-
-      <div v-if="household" class="card invite-card">
-        <div class="invite-label text-muted">
-          <AppIcon name="users" :size="18" /> كود دعوة البيت
-        </div>
-        <div class="num invite-code">{{ household.inviteCode }}</div>
-        <button class="btn btn-gold btn-copy" @click="copyInvite">
-          <AppIcon :name="copied ? 'check' : 'copy'" :size="17" />
-          {{ copied ? 'تم النسخ' : 'نسخ الكود' }}
-        </button>
+      <div class="balance-amount num">{{ signedMoney(myBalance) }}</div>
+      <div class="balance-hint">
+        <template v-if="myBalance > 0">لك عند الآخرين</template>
+        <template v-else-if="myBalance < 0">مستحقّ عليك للآخرين</template>
+        <template v-else>حسابك مصفّى</template>
       </div>
     </div>
 
@@ -138,7 +113,6 @@ const owedToMe = computed(() =>
   flex-direction: column;
   gap: 20px;
 }
-.top-grid,
 .bottom-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -175,8 +149,7 @@ const owedToMe = computed(() =>
 .balance-card.neg {
   background: linear-gradient(135deg, var(--color-danger-soft), #fff);
 }
-.bc-label,
-.invite-label {
+.bc-label {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -196,24 +169,6 @@ const owedToMe = computed(() =>
 .balance-hint {
   font-size: 14px;
   color: var(--color-text-muted);
-}
-
-/* بطاقة الدعوة */
-.invite-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: linear-gradient(135deg, var(--color-gold-soft), #fff);
-  border-color: #efe1b8;
-}
-.invite-code {
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: 6px;
-  color: var(--color-gold-hover);
-}
-.btn-copy {
-  align-self: flex-start;
 }
 
 /* الأقسام */
@@ -304,9 +259,6 @@ const owedToMe = computed(() =>
 
 /* شبكة على الشاشات الكبيرة لملء المساحة */
 @media (min-width: 760px) {
-  .top-grid {
-    grid-template-columns: 1.3fr 1fr;
-  }
   .bottom-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;

@@ -164,7 +164,7 @@ const splitLabel: Record<string, string> = {
       <div class="grid-2">
         <div class="field">
           <label>المبلغ الكلي</label>
-          <input v-model="form.amount" type="number" step="0.01" min="0" placeholder="0.00" />
+          <input v-model="form.amount" type="number" step="1" min="0" placeholder="0.00" />
         </div>
         <div class="field">
           <label>التاريخ</label>
@@ -212,7 +212,7 @@ const splitLabel: Record<string, string> = {
             <input
               v-model="form.customShares[m.id]"
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               placeholder="0.00"
             />
@@ -226,7 +226,7 @@ const splitLabel: Record<string, string> = {
             <input
               v-model="form.percentages[m.id]"
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               max="100"
               placeholder="%"

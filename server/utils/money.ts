@@ -1,23 +1,24 @@
 /**
- * أدوات الأموال — نعمل داخلياً بوحدة "القروش" (أعداد صحيحة) لضمان
- * الدقة التامة وتفادي أخطاء الفاصلة العائمة. كل الحسابات المالية
- * الحساسة (تقسيم الحصص، الأرصدة، التسوية) تمرّ من هنا.
+ * أدوات الأموال — العملة تُعامَل بوحدات صحيحة فقط (بلا فواصل عشرية).
+ * كل الحسابات المالية (تقسيم الحصص، الأرصدة، التسوية) تعمل بأعداد صحيحة،
+ * وباقي القسمة يُوزّع كوحدات كاملة بحيث يبقى المجموع مساوياً للمبلغ تماماً.
+ *
+ * (الأسماء toCents/fromCents محفوظة تاريخياً؛ الوحدة الآن = 1 عملة كاملة.)
  */
 
-/** حوّل مبلغاً عشرياً (مثل 30.00) إلى قروش (3000). */
+/** حوّل مبلغاً إلى عدد صحيح (يُقرّب لأقرب وحدة كاملة). */
 export function toCents(amount: number | string): number {
   const n = typeof amount === 'string' ? Number(amount) : amount
   if (!Number.isFinite(n)) throw new Error(`مبلغ غير صالح: ${amount}`)
-  // نضرب في 100 ونقرّب لأقرب قرش لتفادي مثل 0.1*100 = 9.9999999
-  return Math.round(n * 100)
+  return Math.round(n)
 }
 
-/** حوّل القروش (3000) إلى مبلغ عشري برقمين (30.00). */
+/** إرجاع القيمة كعدد صحيح. */
 export function fromCents(cents: number): number {
-  return Math.round(cents) / 100
+  return Math.round(cents)
 }
 
-/** تقريب مبلغ عشري إلى رقمين. */
+/** تقريب إلى عدد صحيح. */
 export function round2(amount: number): number {
-  return fromCents(toCents(amount))
+  return Math.round(amount)
 }

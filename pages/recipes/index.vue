@@ -178,7 +178,7 @@ function errMsg(e: unknown): string {
         <input
           v-model="ing.estimated_price"
           type="number"
-          step="0.01"
+          step="1"
           min="0"
           placeholder="السعر"
           class="ing-price"
@@ -239,7 +239,7 @@ function errMsg(e: unknown): string {
         <h3>طبخ: {{ cookFor.name }}</h3>
         <div class="field">
           <label>المبلغ الفعلي</label>
-          <input v-model="cookAmount" type="number" step="0.01" min="0" />
+          <input v-model="cookAmount" type="number" step="1" min="0" />
           <p class="text-muted hint">الافتراضي = السعر التقريبي، عدّله حسب ما دفعت فعلاً.</p>
         </div>
         <div class="field">

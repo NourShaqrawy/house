@@ -54,6 +54,15 @@ async function submit() {
 
 <template>
   <div class="auth-wrap">
+    <transition name="fade">
+      <div v-if="loading" class="load-overlay">
+        <div class="load-box">
+          <span class="spinner gold" />
+          <span>{{ mode === 'login' ? 'جارٍ تسجيل الدخول…' : 'جارٍ إنشاء الحساب…' }}</span>
+        </div>
+      </div>
+    </transition>
+
     <div class="auth-card">
       <div class="auth-head">
         <span class="logo-dot" />
@@ -113,8 +122,11 @@ async function submit() {
         </transition>
 
         <button class="btn btn-primary full" type="submit" :disabled="loading">
-          <AppIcon v-if="!loading" name="login" :size="18" />
-          {{ loading ? '...' : mode === 'login' ? 'دخول' : 'تسجيل' }}
+          <span v-if="loading" class="spinner sm" />
+          <template v-else>
+            <AppIcon name="login" :size="18" />
+            {{ mode === 'login' ? 'دخول' : 'تسجيل' }}
+          </template>
         </button>
       </form>
 
@@ -141,6 +153,23 @@ async function submit() {
     ),
     radial-gradient(900px 400px at 0% 110%, var(--color-gold-soft), transparent 55%),
     var(--color-bg);
+}
+.load-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 247, 243, 0.72);
+  backdrop-filter: blur(3px);
+}
+.load-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  font-weight: 600;
+  color: var(--color-text);
 }
 .auth-card {
   width: 100%;

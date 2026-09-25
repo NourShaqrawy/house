@@ -42,6 +42,8 @@ const icons: Record<string, string> = {
     '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
   arrow:
     '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  clock:
+    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   scale:
     '<path d="M12 3v18"/><path d="M8 21h8"/><path d="m3 8 4-4 4 4"/><path d="M7 4v6a5 5 0 0 1-4 4.9"/><path d="M11 14.9A5 5 0 0 1 7 10"/><path d="m13 8 4-4 4 4"/>',
 }

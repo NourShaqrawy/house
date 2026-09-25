@@ -15,12 +15,14 @@ describe('splitEqual', () => {
     expect(sum(res)).toBe(30)
   })
 
-  it('يوزّع باقي القروش عند 10 ÷ 3 ويحافظ على المجموع = 10', () => {
+  it('يوزّع الباقي كوحدات صحيحة عند 10 ÷ 3 ويحافظ على المجموع = 10', () => {
     const res = splitEqual(10, ['A', 'B', 'C'])
-    // 1000 قرش / 3 = 333 و333 و334 → 3.34, 3.33, 3.33
+    // 10 / 3 = 4 و3 و3 (كلها أعداد صحيحة، المجموع = 10)
     expect(sum(res)).toBe(10)
-    const cents = res.map((r) => Math.round(r.shareAmount * 100)).sort()
-    expect(cents).toEqual([333, 333, 334])
+    const vals = res.map((r) => r.shareAmount).sort()
+    expect(vals).toEqual([3, 3, 4])
+    // لا فواصل عشرية
+    for (const r of res) expect(Number.isInteger(r.shareAmount)).toBe(true)
   })
 
   it('يتعامل مع مبلغ لا يقبل القسمة (100 ÷ 6)', () => {

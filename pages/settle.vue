@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { money, signedMoney, date } = useFormat()
+const { money, signedMoney } = useFormat()
 const { profile } = useMe()
 
 interface Balance {
@@ -14,23 +14,12 @@ interface Transfer {
   to_name: string
   amount: number
 }
-interface Settlement {
-  id: string
-  amount: number
-  note: string | null
-  settledAt: string
-  fromUser: { id: string; name: string }
-  toUser: { id: string; name: string }
-}
 
 const { data: balData, refresh: refreshBal } = await useFetch<{ balances: Balance[] }>(
   '/api/balances',
 )
 const { data: sugData, refresh: refreshSug } = await useFetch<{ transfers: Transfer[] }>(
   '/api/settlements/suggest',
-)
-const { data: histData, refresh: refreshHist } = await useFetch<{ settlements: Settlement[] }>(
-  '/api/settlements',
 )
 
 const busy = ref<string | null>(null)
@@ -48,41 +37,29 @@ watch(
   { immediate: true },
 )
 
-// المستخدم طرف في التحويل؟ (يستطيع تسجيله)
 function iAmParty(t: Transfer): boolean {
   return profile.value?.id === t.from || profile.value?.id === t.to
 }
 
 async function pay(t: Transfer) {
   const key = `${t.from}-${t.to}`
-  const amount = Number(payInputs[key])
+  const amount = Math.round(Number(payInputs[key]))
   if (!(amount > 0)) {
     alert('أدخل مبلغاً موجباً')
     return
   }
-  if (amount > t.amount + 0.001) {
+  if (amount > t.amount) {
     if (!confirm(`المبلغ (${amount}) أكبر من المستحق (${t.amount}). المتابعة؟`)) return
   }
+  // تأكيد نهائي — التسوية لا يمكن التراجع عنها بعد تسجيلها
+  if (!confirm(`تأكيد الدفع لـ ${t.to_name}: ${amount}؟ لا يمكن التراجع بعد التأكيد.`)) return
   busy.value = key
   try {
     await $fetch('/api/settlements', {
       method: 'POST',
       body: { from_user_id: t.from, to_user_id: t.to, amount },
     })
-    await Promise.all([refreshBal(), refreshSug(), refreshHist()])
-  } catch (e) {
-    alert(e && typeof e === 'object' && 'statusMessage' in e ? (e as any).statusMessage : 'خطأ')
-  } finally {
-    busy.value = null
-  }
-}
-
-async function deleteSettlement(s: Settlement) {
-  if (!confirm('إلغاء هذه التسوية؟ سيُعاد المبلغ إلى الأرصدة.')) return
-  busy.value = 'del-' + s.id
-  try {
-    await $fetch(`/api/settlements/${s.id}`, { method: 'DELETE' })
-    await Promise.all([refreshBal(), refreshSug(), refreshHist()])
+    await Promise.all([refreshBal(), refreshSug()])
   } catch (e) {
     alert(e && typeof e === 'object' && 'statusMessage' in e ? (e as any).statusMessage : 'خطأ')
   } finally {
@@ -93,7 +70,10 @@ async function deleteSettlement(s: Settlement) {
 
 <template>
   <div class="stack">
-    <h1 class="page-title">التسوية</h1>
+    <div class="head-row">
+      <h1 class="page-title"><AppIcon name="handshake" :size="20" /> التسوية</h1>
+      <NuxtLink to="/history" class="link-sm"><AppIcon name="clock" :size="15" /> السجل</NuxtLink>
+    </div>
 
     <!-- الأرصدة -->
     <section>
@@ -114,13 +94,13 @@ async function deleteSettlement(s: Settlement) {
     <!-- التحويلات المقترحة -->
     <section>
       <h2 class="sec">من يحوّل لمن</h2>
-      <p class="text-muted sub">يمكنك دفع كامل المبلغ أو جزء منه — عدّل الرقم قبل الضغط على "دفع".</p>
+      <p class="text-muted sub">يمكنك دفع كامل المبلغ أو جزء منه — عدّل الرقم قبل الضغط على "دفع". التسوية نهائية بعد التأكيد.</p>
       <div v-if="sugData?.transfers.length" class="stack-sm">
         <div v-for="(t, i) in sugData.transfers" :key="i" class="card transfer">
           <div class="transfer-info">
             <div class="transfer-line">
               <b>{{ t.from_name }}</b>
-              <span class="arrow">←</span>
+              <AppIcon name="arrow" :size="15" class="arrow" />
               <b>{{ t.to_name }}</b>
             </div>
             <div class="num transfer-amount">المستحق: {{ money(t.amount) }}</div>
@@ -129,8 +109,9 @@ async function deleteSettlement(s: Settlement) {
             <input
               v-model="payInputs[`${t.from}-${t.to}`]"
               type="number"
-              step="0.01"
+              step="1"
               min="0"
+              inputmode="numeric"
               class="pay-input num"
             />
             <button
@@ -138,7 +119,8 @@ async function deleteSettlement(s: Settlement) {
               :disabled="busy === `${t.from}-${t.to}`"
               @click="pay(t)"
             >
-              {{ busy === `${t.from}-${t.to}` ? '...' : 'دفع' }}
+              <span v-if="busy === `${t.from}-${t.to}`" class="spinner sm" />
+              <template v-else>دفع</template>
             </button>
           </div>
           <span v-else class="text-muted not-party">بين طرفين آخرين</span>
@@ -147,31 +129,6 @@ async function deleteSettlement(s: Settlement) {
       <div v-else class="card empty">
         <AppIcon name="check" :size="20" /> كل الحسابات مصفّاة
       </div>
-    </section>
-
-    <!-- سجل التسويات -->
-    <section>
-      <h2 class="sec">سجل التسويات</h2>
-      <div v-if="histData?.settlements.length" class="stack-sm">
-        <div v-for="s in histData.settlements" :key="s.id" class="card row">
-          <div>
-            <div><b>{{ s.fromUser.name }}</b> ← <b>{{ s.toUser.name }}</b></div>
-            <div class="text-muted meta">{{ date(s.settledAt) }}</div>
-          </div>
-          <div class="hist-side">
-            <span class="num amount">{{ money(s.amount) }}</span>
-            <button
-              v-if="s.fromUser.id === profile?.id || s.toUser.id === profile?.id"
-              class="undo-btn"
-              :disabled="busy === 'del-' + s.id"
-              @click="deleteSettlement(s)"
-            >
-              إلغاء
-            </button>
-          </div>
-        </div>
-      </div>
-      <div v-else class="card empty">لا تسويات مسجّلة بعد.</div>
     </section>
   </div>
 </template>
@@ -187,9 +144,24 @@ async function deleteSettlement(s: Settlement) {
   flex-direction: column;
   gap: 10px;
 }
+.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .page-title {
   font-size: 20px;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.link-sm {
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .sec {
   font-size: 16px;
@@ -211,19 +183,6 @@ async function deleteSettlement(s: Settlement) {
 }
 .not-party {
   font-size: 13px;
-}
-.hist-side {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.undo-btn {
-  background: none;
-  border: none;
-  color: var(--color-danger);
-  font-size: 13px;
-  cursor: pointer;
-  font-family: inherit;
 }
 .row {
   display: flex;
@@ -259,12 +218,7 @@ async function deleteSettlement(s: Settlement) {
 .btn-sm {
   padding: 8px 14px;
   font-size: 13px;
-}
-.amount {
-  font-weight: 700;
-}
-.meta {
-  font-size: 12px;
+  min-width: 64px;
 }
 .empty {
   display: flex;

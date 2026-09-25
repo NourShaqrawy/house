@@ -24,6 +24,20 @@ watch(() => route.path, () => (open.value = false))
 
 const initials = computed(() => (profile.value?.name || '؟').trim().charAt(0))
 
+// دعوة عضو (كود البيت)
+const showInvite = ref(false)
+const copied = ref(false)
+async function copyInvite() {
+  if (!household.value?.inviteCode) return
+  try {
+    await navigator.clipboard.writeText(household.value.inviteCode)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    /* المتصفح منع النسخ */
+  }
+}
+
 async function logout() {
   await supabase.auth.signOut()
   await navigateTo('/auth/login')
@@ -73,6 +87,11 @@ async function logout() {
           <AppIcon :name="item.icon" :size="20" />
           <span>{{ item.label }}</span>
         </NuxtLink>
+
+        <button class="nav-item invite-btn" @click="showInvite = true">
+          <AppIcon name="users" :size="20" />
+          <span>دعوة عضو</span>
+        </button>
       </nav>
 
       <div class="side-footer">
@@ -92,6 +111,26 @@ async function logout() {
         <slot />
       </div>
     </main>
+
+    <!-- نافذة كود الدعوة -->
+    <transition name="fade">
+      <div v-if="showInvite" class="modal-backdrop" @click.self="showInvite = false">
+        <div class="invite-modal card">
+          <div class="im-head">
+            <h3><AppIcon name="users" :size="18" /> دعوة عضو للبيت</h3>
+            <button class="icon-btn" aria-label="إغلاق" @click="showInvite = false">
+              <AppIcon name="x" :size="20" />
+            </button>
+          </div>
+          <p class="text-muted im-desc">شارك هذا الكود مع من تريد إضافته — يدخله عند "الانضمام بكود".</p>
+          <div class="code-box num">{{ household?.inviteCode }}</div>
+          <button class="btn btn-gold full" @click="copyInvite">
+            <AppIcon :name="copied ? 'check' : 'copy'" :size="17" />
+            {{ copied ? 'تم النسخ' : 'نسخ الكود' }}
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -222,6 +261,73 @@ async function logout() {
   background: var(--color-primary-soft);
   color: var(--color-primary);
   border-inline-start-color: var(--color-gold);
+}
+.invite-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  border-inline-start: 3px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: start;
+  margin-top: 6px;
+  color: var(--color-gold-hover);
+}
+.invite-btn:hover {
+  background: var(--color-gold-soft);
+  color: var(--color-gold-hover);
+}
+
+/* نافذة الدعوة */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 36, 29, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 60;
+}
+.invite-modal {
+  width: 100%;
+  max-width: 380px;
+  animation: pop 0.25s var(--ease);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+.im-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.im-head h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+.im-desc {
+  font-size: 13px;
+  margin: 8px 0 14px;
+}
+.code-box {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: var(--color-gold-hover);
+  background: var(--color-gold-soft);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.full {
+  width: 100%;
 }
 
 .side-footer {

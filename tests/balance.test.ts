@@ -33,23 +33,24 @@ describe('computeBalances', () => {
         payerId: 'A',
         amount: 10,
         shares: [
-          { userId: 'A', shareAmount: 3.34 },
-          { userId: 'B', shareAmount: 3.33 },
-          { userId: 'C', shareAmount: 3.33 },
+          { userId: 'A', shareAmount: 4 },
+          { userId: 'B', shareAmount: 3 },
+          { userId: 'C', shareAmount: 3 },
         ],
       },
       {
         payerId: 'B',
-        amount: 55.5,
+        amount: 56,
         shares: [
-          { userId: 'A', shareAmount: 27.75 },
-          { userId: 'B', shareAmount: 27.75 },
+          { userId: 'A', shareAmount: 28 },
+          { userId: 'B', shareAmount: 28 },
         ],
       },
     ]
     const res = computeBalances(['A', 'B', 'C'], expenses)
     const total = res.reduce((a, r) => a + r.balance, 0)
-    expect(Math.round(total * 100)).toBe(0)
+    expect(total).toBe(0)
+    for (const r of res) expect(Number.isInteger(r.balance)).toBe(true)
   })
 
   it('دمج الدَّين القديم: B مدين لـ A بـ 50 ثم اشترى B طبخة 30 مقسومة على 3', () => {

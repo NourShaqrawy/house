@@ -3,14 +3,15 @@
 export function useFormat() {
   const currency = useState<string>('currency', () => 'SAR')
 
+  // أعداد صحيحة فقط (بلا فواصل عشرية)، مع فاصل الآلاف
   const nf = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })
 
   const money = (v: number | null | undefined) => {
     const n = typeof v === 'number' ? v : 0
-    return `${nf.format(Math.abs(n))} ${currency.value}`
+    return `${nf.format(Math.round(Math.abs(n)))} ${currency.value}`
   }
 
   const signedMoney = (v: number | null | undefined) => {
