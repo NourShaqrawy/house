@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { money, date } = useFormat()
+const { profile } = useMe()
 
 interface Member {
   id: string
@@ -233,7 +234,7 @@ const splitLabel: Record<string, string> = {
             {{ s.user.name }}: <span class="num">{{ money(s.shareAmount) }}</span>
           </span>
         </div>
-        <button class="del-btn" @click="remove(e.id)">حذف</button>
+        <button v-if="e.payer.id === profile?.id" class="del-btn" @click="remove(e.id)">حذف</button>
       </div>
     </div>
     <div v-else class="card empty">لا مصاريف بعد.</div>

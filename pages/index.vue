@@ -44,6 +44,14 @@ const myBalance = computed(
   () => balData.value?.balances.find((b) => b.userId === profile.value?.id)?.balance ?? 0,
 )
 const recentExpenses = computed(() => (expData.value?.expenses ?? []).slice(0, 5))
+
+// التحويلات المخصّصة لي فقط
+const iOwe = computed(() =>
+  (sugData.value?.transfers ?? []).filter((t) => t.from === profile.value?.id),
+)
+const owedToMe = computed(() =>
+  (sugData.value?.transfers ?? []).filter((t) => t.to === profile.value?.id),
+)
 </script>
 
 <template>
@@ -70,19 +78,32 @@ const recentExpenses = computed(() => (expData.value?.expenses ?? []).slice(0, 5
       </button>
     </div>
 
-    <!-- التحويلات المقترحة -->
+    <!-- ديونك الشخصية -->
     <section>
       <div class="section-head">
-        <h2>التحويلات المقترحة</h2>
-        <NuxtLink to="/settle" class="link-sm">تفاصيل</NuxtLink>
+        <h2>تسوية حسابك</h2>
+        <NuxtLink to="/settle" class="link-sm">الكل</NuxtLink>
       </div>
-      <div v-if="sugData?.transfers.length" class="stack-sm">
-        <div v-for="(t, i) in sugData.transfers" :key="i" class="card row">
-          <div><b>{{ t.from_name }}</b> ← <b>{{ t.to_name }}</b></div>
-          <div class="num amount">{{ money(t.amount) }}</div>
+
+      <div v-if="iOwe.length || owedToMe.length" class="stack-sm">
+        <!-- ما عليك دفعه -->
+        <div v-for="(t, i) in iOwe" :key="'owe' + i" class="card debt-row owe">
+          <div class="debt-text">
+            <span class="debt-verb">ادفع لـ</span>
+            <b>{{ t.to_name }}</b>
+          </div>
+          <div class="num amount text-danger">{{ money(t.amount) }}</div>
+        </div>
+        <!-- ما لك عند الآخرين -->
+        <div v-for="(t, i) in owedToMe" :key="'cred' + i" class="card debt-row cred">
+          <div class="debt-text">
+            <b>{{ t.from_name }}</b>
+            <span class="debt-verb">يدفع لك</span>
+          </div>
+          <div class="num amount text-success">{{ money(t.amount) }}</div>
         </div>
       </div>
-      <div v-else class="card empty">لا توجد تحويلات — كل الحسابات مصفّاة ✓</div>
+      <div v-else class="card empty">حسابك مصفّى — لا مستحقّات عليك أو لك ✓</div>
     </section>
 
     <!-- أحدث المصاريف -->
@@ -203,6 +224,29 @@ const recentExpenses = computed(() => (expData.value?.expenses ?? []).slice(0, 5
 }
 .amount {
   font-weight: 700;
+}
+.debt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-inline-start: 4px solid transparent;
+}
+.debt-row.owe {
+  border-inline-start-color: var(--color-danger);
+}
+.debt-row.cred {
+  border-inline-start-color: var(--color-success);
+}
+.debt-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.debt-verb {
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
 .empty {
   text-align: center;

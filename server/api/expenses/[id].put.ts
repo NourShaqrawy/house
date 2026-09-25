@@ -17,15 +17,23 @@ interface Body {
 
 /** تعديل مصروف. إن تغيّر المبلغ/التقسيم/المشاركون تُعاد الحصص بالكامل. */
 export default defineEventHandler(async (event) => {
-  const { householdId } = await getAuthUserWithHousehold(event)
+  const { profile, householdId } = await getAuthUserWithHousehold(event)
   const id = getRouterParam(event, 'id')!
   const body = await readBody<Body>(event)
 
   const existing = await prisma.expense.findFirst({
     where: { id, householdId },
-    select: { id: true, amount: true, splitType: true },
+    select: { id: true, amount: true, splitType: true, payerId: true },
   })
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'المصروف غير موجود' })
+
+  // فقط من أضاف المصروف (الدافع) يمكنه تعديله
+  if (existing.payerId !== profile.id) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'لا يمكنك تعديل مصروف أضافه شخص آخر',
+    })
+  }
 
   // هل نحتاج إعادة حساب الحصص؟ (إذا مُرّر أي من مدخلات التقسيم أو المبلغ)
   const recompute =
