@@ -3,6 +3,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
 
+  // تطبيق محميّ بالكامل خلف تسجيل الدخول → نصيّره على العميل (SPA).
+  // هذا يضمن توفّر جلسة Supabase دائماً عند التحقق من العضوية، ويتجنّب
+  // مشكلة عدم تمرير كوكيز الجلسة أثناء SSR. مسارات الـ API تبقى تعمل.
+  ssr: false,
+
   modules: ['@nuxtjs/supabase'],
 
   css: ['~/assets/css/main.css'],

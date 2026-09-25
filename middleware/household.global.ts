@@ -9,8 +9,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser()
   if (!user.value) return // الوحدة ستعيد التوجيه لتسجيل الدخول
 
-  const { household, loaded, refresh } = useMe()
+  const { profile, household, loaded, refresh } = useMe()
   if (!loaded.value) await refresh()
+
+  // إن تعذّر تحميل الملف الشخصي (فشل مؤقت في الشبكة/المصادقة) لا نحوّل
+  // المستخدم خطأً إلى onboarding — نتركه يحاول مجدداً.
+  if (!profile.value) return
 
   if (!household.value && to.path !== '/onboarding') {
     return navigateTo('/onboarding')
