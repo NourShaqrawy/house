@@ -1,6 +1,18 @@
 <script setup lang="ts">
-const { profile } = useMe()
+const { profile, household } = useMe()
 const { money, signedMoney, date } = useFormat()
+
+const copied = ref(false)
+async function copyInvite() {
+  if (!household.value?.inviteCode) return
+  try {
+    await navigator.clipboard.writeText(household.value.inviteCode)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    // بعض المتصفحات تمنع النسخ بدون https — المستخدم ينسخ يدوياً
+  }
+}
 
 interface Balance {
   userId: string
@@ -45,6 +57,17 @@ const recentExpenses = computed(() => (expData.value?.expenses ?? []).slice(0, 5
         <template v-else-if="myBalance < 0">عليك للآخرين</template>
         <template v-else>حسابك مصفّى ✓</template>
       </div>
+    </div>
+
+    <!-- كود دعوة البيت -->
+    <div v-if="household" class="card invite-card">
+      <div class="invite-info">
+        <div class="text-muted invite-label">كود دعوة البيت</div>
+        <div class="num invite-code">{{ household.inviteCode }}</div>
+      </div>
+      <button class="btn btn-ghost btn-copy" @click="copyInvite">
+        {{ copied ? '✓ نُسخ' : 'نسخ' }}
+      </button>
     </div>
 
     <!-- التحويلات المقترحة -->
@@ -127,6 +150,28 @@ const recentExpenses = computed(() => (expData.value?.expenses ?? []).slice(0, 5
 .balance-hint {
   font-size: 14px;
   color: var(--color-text-muted);
+}
+.invite-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-primary-soft);
+  border-color: #c7d7fe;
+}
+.invite-label {
+  font-size: 13px;
+}
+.invite-code {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--color-primary);
+}
+.btn-copy {
+  padding: 8px 16px;
+  font-size: 14px;
+  white-space: nowrap;
 }
 .section-head {
   display: flex;
