@@ -1,0 +1,23 @@
+# إعداد النشر على Render (Blueprint).
+# في Render: New + → Blueprint → اختر مستودعك → سيقرأ هذا الملف.
+# ثم أضف قيم متغيّرات البيئة (sync: false تعني تُدخَل يدوياً وتبقى سرّية).
+services:
+  - type: web
+    name: beit-expenses
+    runtime: node
+    plan: free
+    region: oregon # us-west (قريب من قاعدة بياناتك في us-west-2)
+    buildCommand: npm install && npx prisma migrate deploy && npm run build
+    startCommand: node .output/server/index.mjs
+    healthCheckPath: /auth/login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
