@@ -26,10 +26,11 @@ const { data: memData } = await useFetch<{ members: Member[] }>('/api/households
 const { data: recData, refresh } = await useFetch<{ recipes: Recipe[] }>('/api/recipes')
 const members = computed(() => memData.value?.members ?? [])
 
-// ---- نموذج إنشاء طبخة ----
+// ---- نموذج إنشاء/تعديل طبخة ----
 const showForm = ref(false)
 const saving = ref(false)
 const formError = ref('')
+const editingId = ref<string | null>(null)
 const form = reactive({
   name: '',
   description: '',
@@ -42,6 +43,7 @@ const form = reactive({
 })
 
 function resetForm() {
+  editingId.value = null
   form.name = ''
   form.description = ''
   form.servings = ''
@@ -50,6 +52,22 @@ function resetForm() {
 function toggleForm() {
   showForm.value = !showForm.value
   if (showForm.value) resetForm()
+}
+function startEdit(r: Recipe) {
+  editingId.value = r.id
+  form.name = r.name
+  form.description = r.description ?? ''
+  form.servings = r.servings ?? ''
+  form.ingredients = r.ingredients.length
+    ? r.ingredients.map((i) => ({
+        name: i.name,
+        quantity: i.quantity ?? '',
+        estimated_price: i.estimatedPrice ?? '',
+      }))
+    : [{ name: '', quantity: '', estimated_price: '' }]
+  showForm.value = true
+  formError.value = ''
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 function addIngredient() {
   form.ingredients.push({ name: '', quantity: '', estimated_price: '' })
@@ -62,23 +80,26 @@ async function saveRecipe() {
   formError.value = ''
   if (!form.name.trim()) return (formError.value = 'اسم الطبخة مطلوب')
   saving.value = true
+  const body = {
+    name: form.name.trim(),
+    description: form.description.trim() || undefined,
+    servings: form.servings ? Number(form.servings) : undefined,
+    ingredients: form.ingredients
+      .filter((i) => i.name.trim())
+      .map((i) => ({
+        name: i.name.trim(),
+        quantity: i.quantity.trim() || undefined,
+        estimated_price: i.estimated_price ? Number(i.estimated_price) : undefined,
+      })),
+  }
   try {
-    await $fetch('/api/recipes', {
-      method: 'POST',
-      body: {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        servings: form.servings ? Number(form.servings) : undefined,
-        ingredients: form.ingredients
-          .filter((i) => i.name.trim())
-          .map((i) => ({
-            name: i.name.trim(),
-            quantity: i.quantity.trim() || undefined,
-            estimated_price: i.estimated_price ? Number(i.estimated_price) : undefined,
-          })),
-      },
-    })
+    if (editingId.value) {
+      await $fetch(`/api/recipes/${editingId.value}`, { method: 'PUT', body })
+    } else {
+      await $fetch('/api/recipes', { method: 'POST', body })
+    }
     showForm.value = false
+    resetForm()
     await refresh()
   } catch (e: unknown) {
     formError.value = errMsg(e)
@@ -199,7 +220,8 @@ function errMsg(e: unknown): string {
 
       <p v-if="formError" class="text-danger msg">{{ formError }}</p>
       <button class="btn btn-primary full" :disabled="saving" @click="saveRecipe">
-        {{ saving ? 'جارٍ الحفظ...' : 'حفظ الطبخة' }}
+        <span v-if="saving" class="spinner sm" />
+        <template v-else>{{ editingId ? 'حفظ التعديلات' : 'حفظ الطبخة' }}</template>
       </button>
     </div>
 
@@ -220,14 +242,19 @@ function errMsg(e: unknown): string {
           <button class="btn btn-primary btn-sm" @click="openCook(r)">
             <AppIcon name="flame" :size="16" /> طبخ الآن
           </button>
-          <button
-            v-if="r.createdBy.id === profile?.id"
-            class="del-link"
-            aria-label="حذف"
-            @click="removeRecipe(r.id)"
-          >
-            <AppIcon name="trash" :size="16" />
-          </button>
+          <div class="recipe-tools">
+            <button class="tool-btn" aria-label="تعديل" @click="startEdit(r)">
+              <AppIcon name="edit" :size="16" />
+            </button>
+            <button
+              v-if="r.createdBy.id === profile?.id"
+              class="tool-btn danger"
+              aria-label="حذف"
+              @click="removeRecipe(r.id)"
+            >
+              <AppIcon name="trash" :size="16" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -394,20 +421,31 @@ function errMsg(e: unknown): string {
   padding: 8px 14px;
   font-size: 13px;
 }
-.del-link {
+.recipe-tools {
+  display: flex;
+  gap: 6px;
+}
+.tool-btn {
   background: none;
-  border: none;
-  color: var(--color-danger);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  padding: 6px;
+  padding: 8px;
   border-radius: 8px;
-  transition: background var(--t);
+  transition: background var(--t), color var(--t), border-color var(--t);
 }
-.del-link:hover {
+.tool-btn:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.tool-btn.danger:hover {
   background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 .modal-backdrop {
   position: fixed;

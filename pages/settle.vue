@@ -37,8 +37,12 @@ watch(
   { immediate: true },
 )
 
-function iAmParty(t: Transfer): boolean {
-  return profile.value?.id === t.from || profile.value?.id === t.to
+// فقط المستلم (الدائن) يؤكّد الاستلام — منعاً للتلاعب من المدين
+function iAmReceiver(t: Transfer): boolean {
+  return profile.value?.id === t.to
+}
+function iAmPayer(t: Transfer): boolean {
+  return profile.value?.id === t.from
 }
 
 async function pay(t: Transfer) {
@@ -52,7 +56,7 @@ async function pay(t: Transfer) {
     if (!confirm(`المبلغ (${amount}) أكبر من المستحق (${t.amount}). المتابعة؟`)) return
   }
   // تأكيد نهائي — التسوية لا يمكن التراجع عنها بعد تسجيلها
-  if (!confirm(`تأكيد الدفع لـ ${t.to_name}: ${amount}؟ لا يمكن التراجع بعد التأكيد.`)) return
+  if (!confirm(`تأكيد استلام ${amount} من ${t.from_name}؟ لا يمكن التراجع بعد التأكيد.`)) return
   busy.value = key
   try {
     await $fetch('/api/settlements', {
@@ -93,19 +97,20 @@ async function pay(t: Transfer) {
 
     <!-- التحويلات المقترحة -->
     <section>
-      <h2 class="sec">من يحوّل لمن</h2>
-      <p class="text-muted sub">يمكنك دفع كامل المبلغ أو جزء منه — عدّل الرقم قبل الضغط على "دفع". التسوية نهائية بعد التأكيد.</p>
+      <h2 class="sec">من يدفع لمن</h2>
+      <p class="text-muted sub">المستلم فقط يؤكّد الاستلام (منعاً للتلاعب). يمكن تأكيد المبلغ كاملاً أو جزءاً منه. التأكيد نهائي.</p>
       <div v-if="sugData?.transfers.length" class="stack-sm">
         <div v-for="(t, i) in sugData.transfers" :key="i" class="card transfer">
           <div class="transfer-info">
             <div class="transfer-line">
               <b>{{ t.from_name }}</b>
-              <AppIcon name="arrow" :size="15" class="arrow" />
+              <span class="verb text-muted">يدفع لـ</span>
               <b>{{ t.to_name }}</b>
             </div>
-            <div class="num transfer-amount">المستحق: {{ money(t.amount) }}</div>
+            <div class="num transfer-amount">{{ money(t.amount) }}</div>
           </div>
-          <div v-if="iAmParty(t)" class="pay-box">
+          <!-- أنا المستلم → أؤكّد الاستلام -->
+          <div v-if="iAmReceiver(t)" class="pay-box">
             <input
               v-model="payInputs[`${t.from}-${t.to}`]"
               type="number"
@@ -120,9 +125,13 @@ async function pay(t: Transfer) {
               @click="pay(t)"
             >
               <span v-if="busy === `${t.from}-${t.to}`" class="spinner sm" />
-              <template v-else>دفع</template>
+              <template v-else>تم الاستلام</template>
             </button>
           </div>
+          <!-- أنا المدين → بانتظار تأكيد المستلم -->
+          <span v-else-if="iAmPayer(t)" class="text-muted waiting">
+            <AppIcon name="clock" :size="15" /> بانتظار تأكيد {{ t.to_name }}
+          </span>
           <span v-else class="text-muted not-party">بين طرفين آخرين</span>
         </div>
       </div>
@@ -183,6 +192,15 @@ async function pay(t: Transfer) {
 }
 .not-party {
   font-size: 13px;
+}
+.verb {
+  font-size: 14px;
+}
+.waiting {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .row {
   display: flex;

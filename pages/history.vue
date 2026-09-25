@@ -23,7 +23,7 @@ const { data: histData } = await useFetch<{ settlements: Settlement[] }>('/api/s
         <div class="left">
           <div class="ico"><AppIcon name="check" :size="18" /></div>
           <div>
-            <div class="names"><b>{{ s.fromUser.name }}</b> <AppIcon name="arrow" :size="14" class="ar" /> <b>{{ s.toUser.name }}</b></div>
+            <div class="names"><b>{{ s.fromUser.name }}</b> <span class="verb text-muted">دفع لـ</span> <b>{{ s.toUser.name }}</b></div>
             <div class="text-muted meta">{{ date(s.settledAt) }}<template v-if="s.note"> · {{ s.note }}</template></div>
           </div>
         </div>
@@ -85,8 +85,8 @@ const { data: histData } = await useFetch<{ settlements: Settlement[] }>('/api/s
   gap: 6px;
   font-size: 15px;
 }
-.ar {
-  color: var(--color-text-muted);
+.verb {
+  font-size: 13px;
 }
 .meta {
   font-size: 12px;
