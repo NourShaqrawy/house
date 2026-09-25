@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { money, signedMoney, date } = useFormat()
+const { profile } = useMe()
 
 interface Balance {
   userId: string
@@ -47,6 +48,11 @@ watch(
   { immediate: true },
 )
 
+// المستخدم طرف في التحويل؟ (يستطيع تسجيله)
+function iAmParty(t: Transfer): boolean {
+  return profile.value?.id === t.from || profile.value?.id === t.to
+}
+
 async function pay(t: Transfer) {
   const key = `${t.from}-${t.to}`
   const amount = Number(payInputs[key])
@@ -63,6 +69,19 @@ async function pay(t: Transfer) {
       method: 'POST',
       body: { from_user_id: t.from, to_user_id: t.to, amount },
     })
+    await Promise.all([refreshBal(), refreshSug(), refreshHist()])
+  } catch (e) {
+    alert(e && typeof e === 'object' && 'statusMessage' in e ? (e as any).statusMessage : 'خطأ')
+  } finally {
+    busy.value = null
+  }
+}
+
+async function deleteSettlement(s: Settlement) {
+  if (!confirm('إلغاء هذه التسوية؟ سيُعاد المبلغ إلى الأرصدة.')) return
+  busy.value = 'del-' + s.id
+  try {
+    await $fetch(`/api/settlements/${s.id}`, { method: 'DELETE' })
     await Promise.all([refreshBal(), refreshSug(), refreshHist()])
   } catch (e) {
     alert(e && typeof e === 'object' && 'statusMessage' in e ? (e as any).statusMessage : 'خطأ')
@@ -106,7 +125,7 @@ async function pay(t: Transfer) {
             </div>
             <div class="num transfer-amount">المستحق: {{ money(t.amount) }}</div>
           </div>
-          <div class="pay-box">
+          <div v-if="iAmParty(t)" class="pay-box">
             <input
               v-model="payInputs[`${t.from}-${t.to}`]"
               type="number"
@@ -122,6 +141,7 @@ async function pay(t: Transfer) {
               {{ busy === `${t.from}-${t.to}` ? '...' : 'دفع' }}
             </button>
           </div>
+          <span v-else class="text-muted not-party">بين طرفين آخرين</span>
         </div>
       </div>
       <div v-else class="card empty">كل الحسابات مصفّاة ✓</div>
@@ -136,7 +156,17 @@ async function pay(t: Transfer) {
             <div><b>{{ s.fromUser.name }}</b> ← <b>{{ s.toUser.name }}</b></div>
             <div class="text-muted meta">{{ date(s.settledAt) }}</div>
           </div>
-          <span class="num amount">{{ money(s.amount) }}</span>
+          <div class="hist-side">
+            <span class="num amount">{{ money(s.amount) }}</span>
+            <button
+              v-if="s.fromUser.id === profile?.id || s.toUser.id === profile?.id"
+              class="undo-btn"
+              :disabled="busy === 'del-' + s.id"
+              @click="deleteSettlement(s)"
+            >
+              إلغاء
+            </button>
+          </div>
         </div>
       </div>
       <div v-else class="card empty">لا تسويات مسجّلة بعد.</div>
@@ -176,6 +206,22 @@ async function pay(t: Transfer) {
   width: 110px;
   padding: 8px 10px;
   text-align: center;
+}
+.not-party {
+  font-size: 13px;
+}
+.hist-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.undo-btn {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
 }
 .row {
   display: flex;

@@ -11,7 +11,7 @@ interface Body {
 
 /** تسجيل تسوية فعلية (تحويل تمّ بين طرفين). */
 export default defineEventHandler(async (event) => {
-  const { householdId } = await getAuthUserWithHousehold(event)
+  const { profile, householdId } = await getAuthUserWithHousehold(event)
   const body = await readBody<Body>(event)
 
   const { from_user_id, to_user_id, amount } = body ?? {}
@@ -22,6 +22,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'لا يمكن التحويل لنفس الشخص' })
   if (!amount || !(amount > 0))
     throw createError({ statusCode: 400, statusMessage: 'المبلغ يجب أن يكون موجباً' })
+
+  // يجب أن يكون المستخدم طرفاً في التسوية (الدافع أو المستلم) — لا يسجّل
+  // أحد تسوية بين شخصين آخرين.
+  if (profile.id !== from_user_id && profile.id !== to_user_id)
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'يمكنك تسجيل تسوية أنت طرف فيها فقط',
+    })
 
   // تحقق أن الطرفين عضوان في البيت
   const members = await prisma.profile.findMany({
