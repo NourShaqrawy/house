@@ -77,10 +77,22 @@ const maxPaid = computed(() =>
       </div>
     </section>
 
-    <div v-if="data?.topPayer" class="card highlights">
-      <div>🥇 الأكثر دفعاً: <b>{{ data.topPayer.name }}</b> ({{ money(data.topPayer.totalPaid) }})</div>
-      <div v-if="data.bottomPayer">
-        🥉 الأقل دفعاً: <b>{{ data.bottomPayer.name }}</b> ({{ money(data.bottomPayer.totalPaid) }})
+    <div v-if="data?.topPayer" class="highlights">
+      <div class="card hl gold">
+        <div class="hl-icon"><AppIcon name="award" :size="20" /></div>
+        <div>
+          <div class="text-muted hl-label">الأكثر دفعاً</div>
+          <div class="hl-name">{{ data.topPayer.name }}</div>
+          <div class="num hl-val">{{ money(data.topPayer.totalPaid) }}</div>
+        </div>
+      </div>
+      <div v-if="data.bottomPayer" class="card hl">
+        <div class="hl-icon muted"><AppIcon name="scale" :size="20" /></div>
+        <div>
+          <div class="text-muted hl-label">الأقل دفعاً</div>
+          <div class="hl-name">{{ data.bottomPayer.name }}</div>
+          <div class="num hl-val">{{ money(data.bottomPayer.totalPaid) }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -144,16 +156,54 @@ const maxPaid = computed(() =>
 }
 .bar-fill {
   height: 100%;
-  background: var(--color-primary);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-gold));
   border-radius: 999px;
-  transition: width 0.3s;
+  transition: width 0.4s var(--ease);
   min-width: 2px;
 }
 .highlights {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.hl {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 15px;
+  align-items: center;
+  gap: 14px;
+}
+.hl-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.hl.gold .hl-icon {
+  background: var(--color-gold-soft);
+  color: var(--color-gold-hover);
+}
+.hl-icon.muted {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+.hl-label {
+  font-size: 13px;
+}
+.hl-name {
+  font-weight: 700;
+  font-size: 16px;
+}
+.hl-val {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+@media (min-width: 560px) {
+  .highlights {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 @media (max-width: 420px) {
   .kpis {

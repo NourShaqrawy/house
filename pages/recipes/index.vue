@@ -129,7 +129,7 @@ async function doCook() {
         participants: cookParticipants.value,
       },
     })
-    cookDone.value = 'تم إنشاء المصروف ✓'
+    cookDone.value = 'تم إنشاء المصروف بنجاح'
     setTimeout(() => (cookFor.value = null), 900)
   } catch (e: unknown) {
     cookError.value = errMsg(e)
@@ -149,7 +149,8 @@ function errMsg(e: unknown): string {
     <div class="section-head">
       <h1 class="page-title">بنك الطبخات</h1>
       <button class="btn btn-primary" @click="toggleForm">
-        {{ showForm ? 'إلغاء' : '+ طبخة جديدة' }}
+        <AppIcon :name="showForm ? 'x' : 'plus'" :size="18" />
+        {{ showForm ? 'إلغاء' : 'طبخة جديدة' }}
       </button>
     </div>
 
@@ -186,13 +187,14 @@ function errMsg(e: unknown): string {
           v-if="form.ingredients.length > 1"
           class="ing-del"
           type="button"
+          aria-label="حذف المكوّن"
           @click="removeIngredient(i)"
         >
-          ✕
+          <AppIcon name="x" :size="16" />
         </button>
       </div>
       <button class="btn btn-ghost btn-sm add-ing" type="button" @click="addIngredient">
-        + مكوّن
+        <AppIcon name="plus" :size="16" /> مكوّن
       </button>
 
       <p v-if="formError" class="text-danger msg">{{ formError }}</p>
@@ -215,8 +217,17 @@ function errMsg(e: unknown): string {
           </span>
         </div>
         <div class="recipe-actions">
-          <button class="btn btn-primary btn-sm" @click="openCook(r)">🍳 طبخ الآن</button>
-          <button v-if="r.createdBy.id === profile?.id" class="del-link" @click="removeRecipe(r.id)">حذف</button>
+          <button class="btn btn-primary btn-sm" @click="openCook(r)">
+            <AppIcon name="flame" :size="16" /> طبخ الآن
+          </button>
+          <button
+            v-if="r.createdBy.id === profile?.id"
+            class="del-link"
+            aria-label="حذف"
+            @click="removeRecipe(r.id)"
+          >
+            <AppIcon name="trash" :size="16" />
+          </button>
         </div>
       </div>
     </div>
@@ -302,7 +313,15 @@ function errMsg(e: unknown): string {
   border-radius: var(--radius-sm);
   color: var(--color-danger);
   cursor: pointer;
-  padding: 0 10px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  flex-shrink: 0;
+  transition: background var(--t), border-color var(--t);
+}
+.ing-del:hover {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
 }
 .add-ing {
   align-self: flex-start;
@@ -341,8 +360,8 @@ function errMsg(e: unknown): string {
   font-size: 16px;
 }
 .price-badge {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-gold-soft);
+  color: var(--color-gold-hover);
   font-weight: 700;
   font-size: 13px;
   padding: 4px 10px;
@@ -379,18 +398,34 @@ function errMsg(e: unknown): string {
   background: none;
   border: none;
   color: var(--color-danger);
-  font-size: 13px;
   cursor: pointer;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background var(--t);
+}
+.del-link:hover {
+  background: var(--color-danger-soft);
 }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(16, 24, 40, 0.45);
+  background: rgba(16, 36, 29, 0.5);
   display: grid;
   place-items: center;
   padding: 16px;
-  z-index: 50;
+  z-index: 60;
+}
+.modal {
+  animation: pop 0.25s var(--ease);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
 }
 .modal {
   width: 100%;

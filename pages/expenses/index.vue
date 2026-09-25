@@ -150,7 +150,8 @@ const splitLabel: Record<string, string> = {
     <div class="section-head">
       <h1 class="page-title">المصاريف</h1>
       <button class="btn btn-primary" @click="toggleForm">
-        {{ showForm ? 'إلغاء' : '+ إضافة مصروف' }}
+        <AppIcon :name="showForm ? 'x' : 'plus'" :size="18" />
+        {{ showForm ? 'إلغاء' : 'إضافة مصروف' }}
       </button>
     </div>
 
@@ -268,12 +269,16 @@ const splitLabel: Record<string, string> = {
             <div class="num amount">{{ money(e.amount) }}</div>
             <div v-if="myShare(e) > 0" class="num my-share">عليك: {{ money(myShare(e)) }}</div>
           </div>
-          <span class="chevron" :class="{ open: expanded.has(e.id) }">▾</span>
+          <span class="chevron" :class="{ open: expanded.has(e.id) }">
+            <AppIcon name="chevron" :size="18" />
+          </span>
         </button>
 
         <!-- التفاصيل عند الفتح -->
         <div v-if="expanded.has(e.id)" class="exp-details">
-          <div v-if="e.note" class="exp-note text-muted">📝 {{ e.note }}</div>
+          <div v-if="e.note" class="exp-note text-muted">
+            <AppIcon name="note" :size="15" /> {{ e.note }}
+          </div>
           <div class="split-tag text-muted">التقسيم: {{ splitLabel[e.splitType] }}</div>
           <div class="shares-list">
             <div
@@ -287,7 +292,7 @@ const splitLabel: Record<string, string> = {
             </div>
           </div>
           <button v-if="e.payer.id === profile?.id" class="btn btn-ghost del-btn2" @click="remove(e.id)">
-            حذف المصروف
+            <AppIcon name="trash" :size="16" /> حذف المصروف
           </button>
         </div>
       </div>
@@ -455,8 +460,8 @@ const splitLabel: Record<string, string> = {
 }
 .chevron {
   color: var(--color-text-muted);
-  transition: transform 0.2s;
-  font-size: 14px;
+  display: inline-flex;
+  transition: transform 0.25s var(--ease);
 }
 .chevron.open {
   transform: rotate(180deg);
@@ -469,6 +474,9 @@ const splitLabel: Record<string, string> = {
 .exp-note {
   font-size: 13px;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .split-tag {
   font-size: 12px;

@@ -59,15 +59,16 @@ function errMsg(e: unknown): string {
 <template>
   <div class="onb-wrap">
     <div class="card onb-card">
-      <h1 class="onb-title">أهلاً بك 👋</h1>
+      <span class="logo-dot" />
+      <h1 class="onb-title">أهلاً بك</h1>
       <p class="text-muted">أنشئ بيتاً جديداً أو انضمّ لبيت موجود بكود الدعوة.</p>
 
       <div class="tabs">
         <button :class="['tab', { active: tab === 'create' }]" @click="tab = 'create'">
-          إنشاء بيت
+          <AppIcon name="plus" :size="18" /> إنشاء بيت
         </button>
         <button :class="['tab', { active: tab === 'join' }]" @click="tab = 'join'">
-          الانضمام بكود
+          <AppIcon name="users" :size="18" /> الانضمام بكود
         </button>
       </div>
 
@@ -115,6 +116,14 @@ function errMsg(e: unknown): string {
   max-width: 420px;
   padding: 24px;
 }
+.logo-dot {
+  display: inline-block;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-gold));
+  margin-bottom: 12px;
+}
 .onb-title {
   margin: 0 0 4px;
 }
@@ -125,7 +134,11 @@ function errMsg(e: unknown): string {
 }
 .tab {
   flex: 1;
-  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   border-radius: var(--radius-sm);
@@ -134,6 +147,7 @@ function errMsg(e: unknown): string {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-muted);
+  transition: background var(--t), border-color var(--t), color var(--t);
 }
 .tab.active {
   background: var(--color-primary-soft);

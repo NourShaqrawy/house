@@ -144,7 +144,9 @@ async function deleteSettlement(s: Settlement) {
           <span v-else class="text-muted not-party">بين طرفين آخرين</span>
         </div>
       </div>
-      <div v-else class="card empty">كل الحسابات مصفّاة ✓</div>
+      <div v-else class="card empty">
+        <AppIcon name="check" :size="20" /> كل الحسابات مصفّاة
+      </div>
     </section>
 
     <!-- سجل التسويات -->
@@ -265,6 +267,10 @@ async function deleteSettlement(s: Settlement) {
   font-size: 12px;
 }
 .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
   color: var(--color-text-muted);
   padding: 20px;

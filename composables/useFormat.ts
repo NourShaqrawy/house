@@ -1,32 +1,38 @@
-/** أدوات تنسيق العرض (العملة، التاريخ). */
+/** أدوات تنسيق العرض (العملة، التاريخ) — الأرقام دائماً بالإنجليزية (Latin). */
 
 export function useFormat() {
   const currency = useState<string>('currency', () => 'SAR')
 
+  const nf = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
   const money = (v: number | null | undefined) => {
     const n = typeof v === 'number' ? v : 0
-    const formatted = new Intl.NumberFormat('ar-SA', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Math.abs(n))
-    return `${formatted} ${currency.value}`
+    return `${nf.format(Math.abs(n))} ${currency.value}`
   }
 
   const signedMoney = (v: number | null | undefined) => {
     const n = typeof v === 'number' ? v : 0
-    const sign = n > 0 ? '+' : n < 0 ? '−' : ''
+    const sign = n > 0 ? '+' : n < 0 ? '-' : ''
     return `${sign}${money(n)}`
   }
 
+  const num = (v: number | null | undefined) =>
+    new Intl.NumberFormat('en-US').format(typeof v === 'number' ? v : 0)
+
+  // تاريخ: أسماء الأشهر بالعربية مع أرقام لاتينية
   const date = (v: string | Date | null | undefined) => {
     if (!v) return ''
     const d = typeof v === 'string' ? new Date(v) : v
-    return new Intl.DateTimeFormat('ar-SA', {
+    return new Intl.DateTimeFormat('ar', {
+      numberingSystem: 'latn',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     }).format(d)
   }
 
-  return { currency, money, signedMoney, date }
+  return { currency, money, signedMoney, num, date }
 }
