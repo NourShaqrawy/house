@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">مصاريف البيت</string>
+    <string name="title_activity_main">مصاريف البيت</string>
+    <string name="package_name">com.beit.expenses</string>
+    <string name="custom_url_scheme">com.beit.expenses</string>
+</resources>

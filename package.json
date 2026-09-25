@@ -26,6 +26,10 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@nuxt/test-utils": "^3.15.1",
     "@types/node": "^26.6.2",
     "@vue/test-utils": "^2.4.6",

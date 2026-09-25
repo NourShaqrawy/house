@@ -25,3 +25,10 @@ npm-debug.log*
 
 # prisma
 prisma/*.db
+
+# Android build outputs / signing
+*.apk
+*.keystore
+*.jks
+android/keystore.properties
+capacitor-assets/*.png
