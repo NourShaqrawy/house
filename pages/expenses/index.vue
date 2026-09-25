@@ -25,6 +25,31 @@ const { data: memData } = await useFetch<{ members: Member[] }>('/api/households
 const { data: expData, refresh } = await useFetch<{ expenses: Expense[] }>('/api/expenses')
 const members = computed(() => memData.value?.members ?? [])
 
+// حصّة المستخدم الحالي في مصروف معيّن (0 إن لم يكن مشاركاً)
+function myShare(e: Expense): number {
+  return e.shares.find((s) => s.user.id === profile.value?.id)?.shareAmount ?? 0
+}
+
+// إجمالي ما على المستخدم من كل المصاريف المعروضة (مجموع حصصه)
+const myTotalShare = computed(() =>
+  (expData.value?.expenses ?? []).reduce((sum, e) => sum + myShare(e), 0),
+)
+// إجمالي ما دفعه المستخدم (مجموع مصاريف هو دافعها)
+const myTotalPaid = computed(() =>
+  (expData.value?.expenses ?? [])
+    .filter((e) => e.payer.id === profile.value?.id)
+    .reduce((sum, e) => sum + e.amount, 0),
+)
+
+// توسيع/طيّ بطاقات المصاريف
+const expanded = ref<Set<string>>(new Set())
+function toggleExpand(id: string) {
+  const s = new Set(expanded.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expanded.value = s
+}
+
 // ---- نموذج الإضافة ----
 const showForm = ref(false)
 const saving = ref(false)
@@ -216,25 +241,55 @@ const splitLabel: Record<string, string> = {
       </button>
     </div>
 
+    <!-- ملخّص المستخدم -->
+    <div v-if="expData?.expenses.length" class="summary">
+      <div class="card sum-card owe">
+        <div class="text-muted sum-label">إجمالي ما عليك (حصصك)</div>
+        <div class="num sum-val text-danger">{{ money(myTotalShare) }}</div>
+      </div>
+      <div class="card sum-card paid">
+        <div class="text-muted sum-label">إجمالي ما دفعته</div>
+        <div class="num sum-val text-success">{{ money(myTotalPaid) }}</div>
+      </div>
+    </div>
+
     <!-- القائمة -->
     <div v-if="expData?.expenses.length" class="stack-sm">
       <div v-for="e in expData.expenses" :key="e.id" class="card exp">
-        <div class="exp-top">
-          <div>
+        <!-- الرأس القابل للنقر -->
+        <button class="exp-head" @click="toggleExpand(e.id)">
+          <div class="exp-head-main">
             <div class="exp-title">{{ e.title }}</div>
             <div class="text-muted exp-meta">
-              دفع {{ e.payer.name }} · {{ date(e.expenseDate) }} · {{ splitLabel[e.splitType] }}
+              دفع {{ e.payer.name }} · {{ date(e.expenseDate) }}
             </div>
           </div>
-          <div class="num amount">{{ money(e.amount) }}</div>
+          <div class="exp-head-side">
+            <div class="num amount">{{ money(e.amount) }}</div>
+            <div v-if="myShare(e) > 0" class="num my-share">عليك: {{ money(myShare(e)) }}</div>
+          </div>
+          <span class="chevron" :class="{ open: expanded.has(e.id) }">▾</span>
+        </button>
+
+        <!-- التفاصيل عند الفتح -->
+        <div v-if="expanded.has(e.id)" class="exp-details">
+          <div v-if="e.note" class="exp-note text-muted">📝 {{ e.note }}</div>
+          <div class="split-tag text-muted">التقسيم: {{ splitLabel[e.splitType] }}</div>
+          <div class="shares-list">
+            <div
+              v-for="s in e.shares"
+              :key="s.user.id"
+              class="share-line"
+              :class="{ me: s.user.id === profile?.id }"
+            >
+              <span>{{ s.user.name }}<span v-if="s.user.id === profile?.id"> (أنت)</span></span>
+              <span class="num">{{ money(s.shareAmount) }}</span>
+            </div>
+          </div>
+          <button v-if="e.payer.id === profile?.id" class="btn btn-ghost del-btn2" @click="remove(e.id)">
+            حذف المصروف
+          </button>
         </div>
-        <div v-if="e.note" class="exp-note text-muted">📝 {{ e.note }}</div>
-        <div class="shares">
-          <span v-for="s in e.shares" :key="s.user.id" class="share-chip">
-            {{ s.user.name }}: <span class="num">{{ money(s.shareAmount) }}</span>
-          </span>
-        </div>
-        <button v-if="e.payer.id === profile?.id" class="del-btn" @click="remove(e.id)">حذف</button>
       </div>
     </div>
     <div v-else class="card empty">لا مصاريف بعد.</div>
@@ -339,14 +394,43 @@ const splitLabel: Record<string, string> = {
 .msg {
   font-size: 14px;
 }
-.exp {
-  position: relative;
-  padding-bottom: 40px;
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
-.exp-top {
+.sum-card {
+  text-align: center;
+  padding: 14px 8px;
+}
+.sum-label {
+  font-size: 12px;
+}
+.sum-val {
+  font-size: 19px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.exp {
+  padding: 0;
+  overflow: hidden;
+}
+.exp-head {
+  width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  padding: 14px 16px;
+  color: inherit;
+}
+.exp-head-main {
+  flex: 1;
+  min-width: 0;
 }
 .exp-title {
   font-weight: 600;
@@ -356,36 +440,64 @@ const splitLabel: Record<string, string> = {
   font-size: 12px;
   margin-top: 2px;
 }
+.exp-head-side {
+  text-align: end;
+}
 .amount {
   font-weight: 700;
   font-size: 16px;
 }
+.my-share {
+  font-size: 12px;
+  color: var(--color-danger);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.chevron {
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+  font-size: 14px;
+}
+.chevron.open {
+  transform: rotate(180deg);
+}
+.exp-details {
+  padding: 0 16px 14px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
 .exp-note {
   font-size: 13px;
-  margin-top: 8px;
+  margin-bottom: 8px;
 }
-.shares {
+.split-tag {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.shares-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 10px;
 }
-.share-chip {
-  font-size: 12px;
+.share-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 6px 10px;
   background: var(--color-bg);
-  padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
-.del-btn {
-  position: absolute;
-  bottom: 12px;
-  inset-inline-start: 16px;
-  background: none;
-  border: none;
+.share-line.me {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.del-btn2 {
+  margin-top: 12px;
   color: var(--color-danger);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: inherit;
+  border-color: #fecdca;
+  font-size: 13px;
+  padding: 8px 14px;
 }
 .empty {
   text-align: center;

@@ -34,13 +34,34 @@ const { data: histData, refresh: refreshHist } = await useFetch<{ settlements: S
 
 const busy = ref<string | null>(null)
 
-async function confirmTransfer(t: Transfer) {
-  const key = `${t.from}-${t.to}-${t.amount}`
+// مبلغ الدفع لكل تحويل مقترح (قابل للتعديل — يسمح بالدفع الجزئي)
+const payInputs = reactive<Record<string, string>>({})
+watch(
+  sugData,
+  (d) => {
+    const next: Record<string, string> = {}
+    for (const tr of d?.transfers ?? []) next[`${tr.from}-${tr.to}`] = String(tr.amount)
+    Object.keys(payInputs).forEach((k) => delete payInputs[k])
+    Object.assign(payInputs, next)
+  },
+  { immediate: true },
+)
+
+async function pay(t: Transfer) {
+  const key = `${t.from}-${t.to}`
+  const amount = Number(payInputs[key])
+  if (!(amount > 0)) {
+    alert('أدخل مبلغاً موجباً')
+    return
+  }
+  if (amount > t.amount + 0.001) {
+    if (!confirm(`المبلغ (${amount}) أكبر من المستحق (${t.amount}). المتابعة؟`)) return
+  }
   busy.value = key
   try {
     await $fetch('/api/settlements', {
       method: 'POST',
-      body: { from_user_id: t.from, to_user_id: t.to, amount: t.amount },
+      body: { from_user_id: t.from, to_user_id: t.to, amount },
     })
     await Promise.all([refreshBal(), refreshSug(), refreshHist()])
   } catch (e) {
@@ -74,6 +95,7 @@ async function confirmTransfer(t: Transfer) {
     <!-- التحويلات المقترحة -->
     <section>
       <h2 class="sec">من يحوّل لمن</h2>
+      <p class="text-muted sub">يمكنك دفع كامل المبلغ أو جزء منه — عدّل الرقم قبل الضغط على "دفع".</p>
       <div v-if="sugData?.transfers.length" class="stack-sm">
         <div v-for="(t, i) in sugData.transfers" :key="i" class="card transfer">
           <div class="transfer-info">
@@ -82,15 +104,24 @@ async function confirmTransfer(t: Transfer) {
               <span class="arrow">←</span>
               <b>{{ t.to_name }}</b>
             </div>
-            <div class="num transfer-amount">{{ money(t.amount) }}</div>
+            <div class="num transfer-amount">المستحق: {{ money(t.amount) }}</div>
           </div>
-          <button
-            class="btn btn-primary btn-sm"
-            :disabled="busy === `${t.from}-${t.to}-${t.amount}`"
-            @click="confirmTransfer(t)"
-          >
-            {{ busy === `${t.from}-${t.to}-${t.amount}` ? '...' : '✓ تم التحويل' }}
-          </button>
+          <div class="pay-box">
+            <input
+              v-model="payInputs[`${t.from}-${t.to}`]"
+              type="number"
+              step="0.01"
+              min="0"
+              class="pay-input num"
+            />
+            <button
+              class="btn btn-primary btn-sm"
+              :disabled="busy === `${t.from}-${t.to}`"
+              @click="pay(t)"
+            >
+              {{ busy === `${t.from}-${t.to}` ? '...' : 'دفع' }}
+            </button>
+          </div>
         </div>
       </div>
       <div v-else class="card empty">كل الحسابات مصفّاة ✓</div>
@@ -132,6 +163,20 @@ async function confirmTransfer(t: Transfer) {
   font-size: 16px;
   margin: 0 0 10px;
 }
+.sub {
+  font-size: 13px;
+  margin: -6px 0 10px;
+}
+.pay-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pay-input {
+  width: 110px;
+  padding: 8px 10px;
+  text-align: center;
+}
 .row {
   display: flex;
   align-items: center;
@@ -145,6 +190,8 @@ async function confirmTransfer(t: Transfer) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   padding: 14px 16px;
 }
 .transfer-line {
