@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { money } = useFormat()
+const { profile } = useMe()
 
 interface Member {
   id: string
@@ -215,7 +216,7 @@ function errMsg(e: unknown): string {
         </div>
         <div class="recipe-actions">
           <button class="btn btn-primary btn-sm" @click="openCook(r)">🍳 طبخ الآن</button>
-          <button class="del-link" @click="removeRecipe(r.id)">حذف</button>
+          <button v-if="r.createdBy.id === profile?.id" class="del-link" @click="removeRecipe(r.id)">حذف</button>
         </div>
       </div>
     </div>
