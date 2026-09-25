@@ -1,0 +1,27 @@
+# Nuxt / Nitro
+.nuxt
+.output
+.data
+dist
+
+# deps
+node_modules
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# misc
+.DS_Store
+.vercel
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# prisma
+prisma/*.db

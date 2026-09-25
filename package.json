@@ -1,0 +1,38 @@
+{
+  "name": "beit-expenses",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare && prisma generate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@nuxtjs/supabase": "^1.5.0",
+    "@prisma/client": "^6.2.1",
+    "@supabase/supabase-js": "^2.47.10",
+    "decimal.js": "^10.4.3",
+    "nuxt": "^3.15.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^3.15.1",
+    "@types/node": "^26.6.2",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^15.11.7",
+    "prisma": "^6.2.1",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.0",
+    "vue-tsc": "^3.3.11"
+  }
+}

@@ -1,0 +1,12 @@
+# توحيد نهايات الأسطر إلى LF داخل المستودع (Vercel/Linux) مع إبقاء
+# فحص تلقائي للملفات النصية.
+* text=auto eol=lf
+
+# ملفات ثنائية لا تُطبَّع
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

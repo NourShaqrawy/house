@@ -1,0 +1,171 @@
+// ============================================================
+//  مخطط قاعدة البيانات — تطبيق مصاريف البيت + بنك الطبخات
+//  ملاحظة: كل الحقول المالية Decimal(12,2) — لا Float إطلاقاً.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled — للتطبيق (serverless)
+  directUrl = env("DIRECT_URL") // direct — للـ migrate فقط
+}
+
+enum SplitType {
+  equal
+  custom
+  percentage
+}
+
+// ------------------------------------------------------------
+//  profiles — مرتبط 1-إلى-1 مع auth.users عبر نفس الـ id
+// ------------------------------------------------------------
+model Profile {
+  id          String     @id @db.Uuid // نفس id الخاص بـ auth.users
+  name        String
+  avatar      String?
+  householdId String?    @map("household_id") @db.Uuid
+  household   Household? @relation("HouseholdMembers", fields: [householdId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // علاقات عكسية
+  ownedHouseholds   Household[]     @relation("HouseholdOwner")
+  paidExpenses      Expense[]       @relation("ExpensePayer")
+  expenseShares     ExpenseShare[]
+  createdRecipes    Recipe[]        @relation("RecipeCreator")
+  settlementsFrom   Settlement[]    @relation("SettlementFrom")
+  settlementsTo     Settlement[]    @relation("SettlementTo")
+
+  @@index([householdId])
+  @@map("profiles")
+}
+
+// ------------------------------------------------------------
+//  households — البيوت
+// ------------------------------------------------------------
+model Household {
+  id         String  @id @default(uuid()) @db.Uuid
+  name       String
+  ownerId    String  @map("owner_id") @db.Uuid
+  owner      Profile @relation("HouseholdOwner", fields: [ownerId], references: [id])
+  inviteCode String  @unique @map("invite_code")
+  currency   String? @default("SAR")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members     Profile[]    @relation("HouseholdMembers")
+  expenses    Expense[]
+  recipes     Recipe[]
+  settlements Settlement[]
+
+  @@map("households")
+}
+
+// ------------------------------------------------------------
+//  expenses — المصاريف
+// ------------------------------------------------------------
+model Expense {
+  id          String    @id @default(uuid()) @db.Uuid
+  householdId String    @map("household_id") @db.Uuid
+  household   Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  payerId     String    @map("payer_id") @db.Uuid
+  payer       Profile   @relation("ExpensePayer", fields: [payerId], references: [id])
+  title       String
+  amount      Decimal   @db.Decimal(12, 2)
+  note        String?   @db.Text
+  splitType   SplitType @map("split_type")
+  recipeId    String?   @map("recipe_id") @db.Uuid
+  recipe      Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  expenseDate DateTime  @map("expense_date") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shares ExpenseShare[]
+
+  @@index([householdId])
+  @@index([payerId])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+// ------------------------------------------------------------
+//  expense_shares — حصص المصروف
+// ------------------------------------------------------------
+model ExpenseShare {
+  id          String  @id @default(uuid()) @db.Uuid
+  expenseId   String  @map("expense_id") @db.Uuid
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      String  @map("user_id") @db.Uuid
+  user        Profile @relation(fields: [userId], references: [id])
+  shareAmount Decimal @map("share_amount") @db.Decimal(12, 2)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+  @@map("expense_shares")
+}
+
+// ------------------------------------------------------------
+//  recipes — الطبخات
+// ------------------------------------------------------------
+model Recipe {
+  id          String  @id @default(uuid()) @db.Uuid
+  householdId String  @map("household_id") @db.Uuid
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name        String
+  description String? @db.Text
+  servings    Int?
+  createdById String  @map("created_by") @db.Uuid
+  createdBy   Profile @relation("RecipeCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  ingredients RecipeIngredient[]
+  expenses    Expense[]
+
+  @@index([householdId])
+  @@map("recipes")
+}
+
+// ------------------------------------------------------------
+//  recipe_ingredients — مكونات الطبخة
+// ------------------------------------------------------------
+model RecipeIngredient {
+  id             String   @id @default(uuid()) @db.Uuid
+  recipeId       String   @map("recipe_id") @db.Uuid
+  recipe         Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name           String
+  quantity       String?
+  estimatedPrice Decimal? @map("estimated_price") @db.Decimal(12, 2)
+
+  @@index([recipeId])
+  @@map("recipe_ingredients")
+}
+
+// ------------------------------------------------------------
+//  settlements — سجل التسويات
+// ------------------------------------------------------------
+model Settlement {
+  id          String   @id @default(uuid()) @db.Uuid
+  householdId String   @map("household_id") @db.Uuid
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  fromUserId  String   @map("from_user_id") @db.Uuid
+  fromUser    Profile  @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUserId    String   @map("to_user_id") @db.Uuid
+  toUser      Profile  @relation("SettlementTo", fields: [toUserId], references: [id])
+  amount      Decimal  @db.Decimal(12, 2)
+  note        String?
+  settledAt   DateTime @default(now()) @map("settled_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([householdId])
+  @@map("settlements")
+}
