@@ -17,6 +17,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
     "@nuxtjs/supabase": "^1.5.0",
     "@prisma/client": "^6.2.1",
     "@supabase/supabase-js": "^2.47.10",

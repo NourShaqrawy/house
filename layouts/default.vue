@@ -7,24 +7,29 @@ if (!loaded.value) {
   await refresh()
 }
 
-const nav = [
+// عناصر أساسية (تظهر في الناف السفلي على الموبايل + الجانبي على الكبير)
+const mainNav = [
   { to: '/', label: 'الرئيسية', icon: 'home' },
   { to: '/expenses', label: 'المصاريف', icon: 'receipt' },
   { to: '/recipes', label: 'الطبخات', icon: 'pot' },
   { to: '/settle', label: 'التسوية', icon: 'handshake' },
-  { to: '/stats', label: 'إحصائيات', icon: 'chart' },
+]
+// عناصر إضافية (تظهر في "المزيد" على الموبايل + الجانبي على الكبير)
+const moreNav = [
+  { to: '/stats', label: 'الإحصائيات', icon: 'chart' },
+  { to: '/history', label: 'سجل التسويات', icon: 'clock' },
 ]
 
-const open = ref(false)
+const moreOpen = ref(false)
 const isActive = (to: string) =>
   to === '/' ? route.path === '/' : route.path.startsWith(to)
+const moreActive = computed(() => moreNav.some((i) => isActive(i.to)))
 
-// أغلق الدرج عند تغيّر المسار (على الجوال)
-watch(() => route.path, () => (open.value = false))
+watch(() => route.path, () => (moreOpen.value = false))
 
 const initials = computed(() => (profile.value?.name || '؟').trim().charAt(0))
 
-// دعوة عضو (كود البيت)
+// دعوة عضو
 const showInvite = ref(false)
 const copied = ref(false)
 async function copyInvite() {
@@ -34,13 +39,21 @@ async function copyInvite() {
     copied.value = true
     setTimeout(() => (copied.value = false), 1500)
   } catch {
-    /* المتصفح منع النسخ */
+    /* منع النسخ */
   }
 }
 
+const loggingOut = ref(false)
 async function logout() {
-  await supabase.auth.signOut()
-  await navigateTo('/auth/login')
+  if (!confirm('تسجيل الخروج من التطبيق؟')) return
+  loggingOut.value = true
+  moreOpen.value = false
+  try {
+    await supabase.auth.signOut()
+    await navigateTo('/auth/login')
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -48,9 +61,6 @@ async function logout() {
   <div class="layout">
     <!-- شريط علوي (الجوال فقط) -->
     <header class="topbar">
-      <button class="icon-btn" aria-label="القائمة" @click="open = true">
-        <AppIcon name="menu" :size="22" />
-      </button>
       <div class="topbar-brand">
         <span class="dot" />
         مصاريف البيت
@@ -58,27 +68,19 @@ async function logout() {
       <div class="avatar sm">{{ initials }}</div>
     </header>
 
-    <!-- خلفية معتمة للدرج -->
-    <transition name="fade">
-      <div v-if="open" class="backdrop" @click="open = false" />
-    </transition>
-
-    <!-- الناف بار الجانبي -->
-    <aside class="sidebar" :class="{ open }">
+    <!-- الناف بار الجانبي (شاشات كبيرة) -->
+    <aside class="sidebar">
       <div class="brand">
         <span class="dot" />
         <div>
           <div class="brand-name">مصاريف البيت</div>
           <div v-if="household" class="brand-sub text-muted">{{ household.name }}</div>
         </div>
-        <button class="icon-btn close-btn" aria-label="إغلاق" @click="open = false">
-          <AppIcon name="x" :size="20" />
-        </button>
       </div>
 
       <nav class="nav">
         <NuxtLink
-          v-for="item in nav"
+          v-for="item in [...mainNav, ...moreNav]"
           :key="item.to"
           :to="item.to"
           class="nav-item"
@@ -87,7 +89,6 @@ async function logout() {
           <AppIcon :name="item.icon" :size="20" />
           <span>{{ item.label }}</span>
         </NuxtLink>
-
         <button class="nav-item invite-btn" @click="showInvite = true">
           <AppIcon name="users" :size="20" />
           <span>دعوة عضو</span>
@@ -99,8 +100,9 @@ async function logout() {
           <div class="avatar">{{ initials }}</div>
           <div class="user-name">{{ profile?.name }}</div>
         </div>
-        <button class="icon-btn logout" aria-label="خروج" @click="logout">
-          <AppIcon name="logout" :size="20" />
+        <button class="icon-btn logout" aria-label="خروج" :disabled="loggingOut" @click="logout">
+          <span v-if="loggingOut" class="spinner dark" />
+          <AppIcon v-else name="logout" :size="20" />
         </button>
       </div>
     </aside>
@@ -111,6 +113,52 @@ async function logout() {
         <slot />
       </div>
     </main>
+
+    <!-- الناف بار السفلي (الجوال) -->
+    <nav class="bottom-bar">
+      <NuxtLink
+        v-for="item in mainNav"
+        :key="item.to"
+        :to="item.to"
+        class="bb-item"
+        :class="{ active: isActive(item.to) }"
+      >
+        <AppIcon :name="item.icon" :size="22" />
+        <span>{{ item.label }}</span>
+      </NuxtLink>
+      <button class="bb-item" :class="{ active: moreActive || moreOpen }" @click="moreOpen = true">
+        <AppIcon name="more" :size="22" />
+        <span>المزيد</span>
+      </button>
+    </nav>
+
+    <!-- لوحة "المزيد" السفلية -->
+    <transition name="fade">
+      <div v-if="moreOpen" class="sheet-backdrop" @click.self="moreOpen = false">
+        <div class="sheet">
+          <div class="sheet-handle" />
+          <NuxtLink
+            v-for="item in moreNav"
+            :key="item.to"
+            :to="item.to"
+            class="sheet-item"
+            :class="{ active: isActive(item.to) }"
+          >
+            <AppIcon :name="item.icon" :size="20" />
+            <span>{{ item.label }}</span>
+          </NuxtLink>
+          <button class="sheet-item" @click="showInvite = true; moreOpen = false">
+            <AppIcon name="users" :size="20" />
+            <span>دعوة عضو</span>
+          </button>
+          <button class="sheet-item danger" :disabled="loggingOut" @click="logout">
+            <span v-if="loggingOut" class="spinner dark" />
+            <AppIcon v-else name="logout" :size="20" />
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </transition>
 
     <!-- نافذة كود الدعوة -->
     <transition name="fade">
@@ -159,7 +207,6 @@ async function logout() {
   font-weight: 700;
   font-size: 16px;
 }
-
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -176,8 +223,6 @@ async function logout() {
 .icon-btn:hover {
   background: var(--color-surface-2);
 }
-
-/* العلامة الذهبية */
 .dot {
   width: 12px;
   height: 12px;
@@ -187,31 +232,9 @@ async function logout() {
   flex-shrink: 0;
 }
 
-/* ---------- الخلفية المعتمة ---------- */
-.backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(16, 36, 29, 0.45);
-  z-index: 40;
-}
-
-/* ---------- الناف بار الجانبي ---------- */
+/* ---------- الناف بار الجانبي (يظهر على الكبير فقط) ---------- */
 .sidebar {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: var(--sidebar-w);
-  background: var(--color-surface);
-  border-inline-end: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  z-index: 50;
-  transform: translateX(100%); /* مخفي على الجوال (RTL: خارج الحافة اليمنى) */
-  transition: transform 0.3s var(--ease);
-}
-.sidebar.open {
-  transform: translateX(0);
-  box-shadow: var(--shadow);
+  display: none;
 }
 
 .brand {
@@ -229,10 +252,6 @@ async function logout() {
 .brand-sub {
   font-size: 12px;
 }
-.close-btn {
-  margin-inline-start: auto;
-}
-
 .nav {
   display: flex;
   flex-direction: column;
@@ -277,8 +296,143 @@ async function logout() {
   background: var(--color-gold-soft);
   color: var(--color-gold-hover);
 }
+.side-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--color-border);
+}
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.avatar.sm {
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+}
+.logout {
+  color: var(--color-danger);
+}
+.logout:hover {
+  background: var(--color-danger-soft);
+}
 
-/* نافذة الدعوة */
+/* ---------- المحتوى ---------- */
+.content {
+  padding-block: 18px;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom)); /* مساحة للناف السفلي */
+}
+
+/* ---------- الناف بار السفلي (الجوال) ---------- */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+}
+.bb-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  transition: color var(--t);
+}
+.bb-item.active {
+  color: var(--color-primary);
+}
+
+/* ---------- لوحة "المزيد" السفلية ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 36, 29, 0.45);
+  z-index: 45;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet {
+  width: 100%;
+  background: var(--color-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 12px calc(18px + env(safe-area-inset-bottom));
+  animation: slideUp 0.28s var(--ease);
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+.sheet-handle {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-border);
+  margin: 4px auto 12px;
+}
+.sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: start;
+}
+.sheet-item:hover {
+  background: var(--color-surface-2);
+}
+.sheet-item.active {
+  color: var(--color-primary);
+}
+.sheet-item.danger {
+  color: var(--color-danger);
+}
+
+/* ---------- نافذة الدعوة ---------- */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -330,76 +484,30 @@ async function logout() {
   width: 100%;
 }
 
-.side-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-top: 1px solid var(--color-border);
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-.user-name {
-  font-weight: 600;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.avatar.sm {
-  width: 34px;
-  height: 34px;
-  font-size: 14px;
-}
-.logout {
-  color: var(--color-danger);
-}
-.logout:hover {
-  background: var(--color-danger-soft);
-}
-
-/* ---------- المحتوى ---------- */
-.content {
-  padding-block: 20px;
-}
-
-/* ---------- الشاشات الكبيرة: ناف بار ثابت ---------- */
+/* ---------- شاشات كبيرة: sidebar ثابت، إخفاء الناف السفلي ---------- */
 @media (min-width: 900px) {
-  .topbar {
+  .topbar,
+  .bottom-bar {
     display: none;
   }
   .sidebar {
-    transform: translateX(0);
-  }
-  .close-btn {
-    display: none;
-  }
-  .backdrop {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--sidebar-w);
+    background: var(--color-surface);
+    border-inline-end: 1px solid var(--color-border);
+    z-index: 20;
   }
   .content {
     margin-inline-start: var(--sidebar-w);
     padding-block: 32px;
+    padding-bottom: 32px;
   }
 }
 
-/* انتقال الخلفية */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s var(--ease);

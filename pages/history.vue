@@ -10,12 +10,17 @@ interface Settlement {
   toUser: { id: string; name: string }
 }
 
-const { data: histData } = await useFetch<{ settlements: Settlement[] }>('/api/settlements')
+const { data: histData, refresh } = await useFetch<{ settlements: Settlement[] }>('/api/settlements')
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try { await refresh() } finally { refreshing.value = false }
+}
 </script>
 
 <template>
   <div class="stack">
-    <h1 class="page-title"><AppIcon name="clock" :size="20" /> سجل التسويات</h1>
+    <PageHeader title="سجل التسويات" icon="clock" :refreshing="refreshing" @refresh="reload" />
     <p class="text-muted sub">كل التحويلات التي تمّت بين أفراد البيت (لا يمكن التراجع عنها).</p>
 
     <div v-if="histData?.settlements.length" class="stack-sm">

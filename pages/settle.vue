@@ -22,6 +22,12 @@ const { data: sugData, refresh: refreshSug } = await useFetch<{ transfers: Trans
   '/api/settlements/suggest',
 )
 
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try { await Promise.all([refreshBal(), refreshSug()]) } finally { refreshing.value = false }
+}
+
 const busy = ref<string | null>(null)
 
 // مبلغ الدفع لكل تحويل مقترح (قابل للتعديل — يسمح بالدفع الجزئي)
@@ -74,10 +80,11 @@ async function pay(t: Transfer) {
 
 <template>
   <div class="stack">
-    <div class="head-row">
-      <h1 class="page-title"><AppIcon name="handshake" :size="20" /> التسوية</h1>
-      <NuxtLink to="/history" class="link-sm"><AppIcon name="clock" :size="15" /> السجل</NuxtLink>
-    </div>
+    <PageHeader title="التسوية" icon="handshake" :refreshing="refreshing" @refresh="reload">
+      <template #actions>
+        <NuxtLink to="/history" class="ph-link" aria-label="السجل"><AppIcon name="clock" :size="19" /></NuxtLink>
+      </template>
+    </PageHeader>
 
     <!-- الأرصدة -->
     <section>
@@ -153,10 +160,21 @@ async function pay(t: Transfer) {
   flex-direction: column;
   gap: 10px;
 }
-.head-row {
-  display: flex;
+.ph-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  transition: background var(--t), color var(--t), border-color var(--t);
+}
+.ph-link:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 .page-title {
   font-size: 20px;

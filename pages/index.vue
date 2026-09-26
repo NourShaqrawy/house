@@ -22,9 +22,15 @@ interface Expense {
   payer: { id: string; name: string }
 }
 
-const { data: balData } = await useFetch<{ balances: Balance[] }>('/api/balances')
-const { data: sugData } = await useFetch<{ transfers: Transfer[] }>('/api/settlements/suggest')
-const { data: expData } = await useFetch<{ expenses: Expense[] }>('/api/expenses')
+const { data: balData, refresh: rBal } = await useFetch<{ balances: Balance[] }>('/api/balances')
+const { data: sugData, refresh: rSug } = await useFetch<{ transfers: Transfer[] }>('/api/settlements/suggest')
+const { data: expData, refresh: rExp } = await useFetch<{ expenses: Expense[] }>('/api/expenses')
+
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try { await Promise.all([rBal(), rSug(), rExp()]) } finally { refreshing.value = false }
+}
 
 const myBalance = computed(
   () => balData.value?.balances.find((b) => b.userId === profile.value?.id)?.balance ?? 0,
@@ -40,6 +46,8 @@ const owedToMe = computed(() =>
 
 <template>
   <div class="dash">
+    <PageHeader title="الرئيسية" icon="home" :back="false" :refreshing="refreshing" @refresh="reload" />
+
     <!-- بطاقة الرصيد -->
     <div class="card balance-card" :class="myBalance >= 0 ? 'pos' : 'neg'">
       <div class="bc-label text-muted">

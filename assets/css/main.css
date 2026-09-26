@@ -230,6 +230,13 @@ label {
   border-color: var(--color-gold-soft);
   border-top-color: var(--color-gold);
 }
+.spinner.dark {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+}
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -239,15 +246,15 @@ label {
 /* انتقالات الصفحات (smooth) */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+  transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateX(26px);
 }
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateX(-26px);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -15,6 +15,8 @@ export interface NamedBalance {
 export async function loadHouseholdBalances(householdId: string): Promise<{
   balances: NamedBalance[]
   nameOf: Map<string, string>
+  expenseInput: ExpenseForBalance[]
+  settlementInput: SettlementForBalance[]
 }> {
   const [members, expenses, settlements] = await Promise.all([
     prisma.profile.findMany({
@@ -65,5 +67,5 @@ export async function loadHouseholdBalances(householdId: string): Promise<{
     balance: b.balance,
   }))
 
-  return { balances, nameOf }
+  return { balances, nameOf, expenseInput, settlementInput }
 }

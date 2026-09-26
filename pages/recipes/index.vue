@@ -26,6 +26,26 @@ const { data: memData } = await useFetch<{ members: Member[] }>('/api/households
 const { data: recData, refresh } = await useFetch<{ recipes: Recipe[] }>('/api/recipes')
 const members = computed(() => memData.value?.members ?? [])
 
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try { await refresh() } finally { refreshing.value = false }
+}
+
+// بحث
+const search = ref('')
+const filteredRecipes = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const list = recData.value?.recipes ?? []
+  if (!q) return list
+  return list.filter(
+    (r) =>
+      r.name.toLowerCase().includes(q) ||
+      (r.description ?? '').toLowerCase().includes(q) ||
+      r.ingredients.some((i) => i.name.toLowerCase().includes(q)),
+  )
+})
+
 // ---- نموذج إنشاء/تعديل طبخة ----
 const showForm = ref(false)
 const saving = ref(false)
@@ -100,7 +120,7 @@ async function saveRecipe() {
     }
     showForm.value = false
     resetForm()
-    await refresh()
+    await reload()
   } catch (e: unknown) {
     formError.value = errMsg(e)
   } finally {
@@ -108,10 +128,18 @@ async function saveRecipe() {
   }
 }
 
+const deleting = ref<string | null>(null)
 async function removeRecipe(id: string) {
-  if (!confirm('حذف هذه الطبخة؟')) return
-  await $fetch(`/api/recipes/${id}`, { method: 'DELETE' })
-  await refresh()
+  if (!confirm('تأكيد حذف هذه الطبخة؟ لا يمكن التراجع.')) return
+  deleting.value = id
+  try {
+    await $fetch(`/api/recipes/${id}`, { method: 'DELETE' })
+    await reload()
+  } catch (e) {
+    alert(errMsg(e))
+  } finally {
+    deleting.value = null
+  }
 }
 
 // ---- الطبخ ----
@@ -167,11 +195,16 @@ function errMsg(e: unknown): string {
 
 <template>
   <div class="stack">
-    <div class="section-head">
-      <h1 class="page-title">بنك الطبخات</h1>
+    <PageHeader title="بنك الطبخات" icon="pot" :refreshing="refreshing" @refresh="reload" />
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <AppIcon name="search" :size="18" class="search-ic" />
+        <input v-model="search" type="search" placeholder="ابحث عن طبخة أو مكوّن…" class="search-in" />
+      </div>
       <button class="btn btn-primary" @click="toggleForm">
         <AppIcon :name="showForm ? 'x' : 'plus'" :size="18" />
-        {{ showForm ? 'إلغاء' : 'طبخة جديدة' }}
+        {{ showForm ? 'إلغاء' : 'جديدة' }}
       </button>
     </div>
 
@@ -226,8 +259,8 @@ function errMsg(e: unknown): string {
     </div>
 
     <!-- القائمة -->
-    <div v-if="recData?.recipes.length" class="recipes-grid">
-      <div v-for="r in recData.recipes" :key="r.id" class="card recipe">
+    <div v-if="filteredRecipes.length" class="recipes-grid">
+      <div v-for="r in filteredRecipes" :key="r.id" class="card recipe">
         <div class="recipe-top">
           <h3 class="recipe-name">{{ r.name }}</h3>
           <span class="num price-badge">{{ money(r.estimatedTotal) }}</span>
@@ -250,15 +283,17 @@ function errMsg(e: unknown): string {
               v-if="r.createdBy.id === profile?.id"
               class="tool-btn danger"
               aria-label="حذف"
+              :disabled="deleting === r.id"
               @click="removeRecipe(r.id)"
             >
-              <AppIcon name="trash" :size="16" />
+              <span v-if="deleting === r.id" class="spinner dark" />
+              <AppIcon v-else name="trash" :size="16" />
             </button>
           </div>
         </div>
       </div>
     </div>
-    <div v-else class="card empty">لا طبخات بعد — أضف أول وصفة.</div>
+    <div v-else class="card empty">{{ search ? 'لا طبخات مطابقة للبحث.' : 'لا طبخات بعد — أضف أول وصفة.' }}</div>
 
     <!-- نافذة الطبخ -->
     <div v-if="cookFor" class="modal-backdrop" @click.self="cookFor = null">
@@ -287,7 +322,8 @@ function errMsg(e: unknown): string {
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="cookFor = null">إلغاء</button>
           <button class="btn btn-primary" :disabled="cooking" @click="doCook">
-            {{ cooking ? '...' : 'إنشاء المصروف' }}
+            <span v-if="cooking" class="spinner sm" />
+            <template v-else>إنشاء المصروف</template>
           </button>
         </div>
       </div>
@@ -299,16 +335,26 @@ function errMsg(e: unknown): string {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
-.section-head {
+.toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  align-items: stretch;
 }
-.page-title {
-  font-size: 20px;
-  margin: 0;
+.search-wrap {
+  position: relative;
+  flex: 1;
+}
+.search-ic {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+.search-in {
+  padding-inline-start: 40px;
 }
 .form-card {
   display: flex;

@@ -1,15 +1,16 @@
 import { getAuthUserWithHousehold } from '../../utils/getAuthUser'
 import { loadHouseholdBalances } from '../../utils/householdBalances'
-import { suggestSettlements } from '../../utils/settlement'
+import { computePairwiseTransfers } from '../../utils/pairwiseDebts'
 
-/** التحويلات المقترحة (خوارزمية التبسيط) لتصفية أرصدة البيت. */
+/**
+ * التحويلات المستحقّة بين كل زوج مباشرةً (بلا توجيه عبر طرف ثالث).
+ * تعكس من يدين لمن فعلاً حسب المصاريف.
+ */
 export default defineEventHandler(async (event) => {
   const { householdId } = await getAuthUserWithHousehold(event)
-  const { balances, nameOf } = await loadHouseholdBalances(householdId)
+  const { nameOf, expenseInput, settlementInput } = await loadHouseholdBalances(householdId)
 
-  const transfers = suggestSettlements(
-    balances.map((b) => ({ userId: b.userId, balance: b.balance })),
-  )
+  const transfers = computePairwiseTransfers(expenseInput, settlementInput)
 
   return {
     transfers: transfers.map((t) => ({

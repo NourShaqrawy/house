@@ -26,6 +26,11 @@ const query = computed(() => {
 })
 
 const { data, refresh } = await useFetch<Summary>('/api/stats/summary', { query })
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try { await refresh() } finally { refreshing.value = false }
+}
 
 const maxPaid = computed(() =>
   Math.max(1, ...(data.value?.perPerson.map((p) => p.totalPaid) ?? [1])),
@@ -34,7 +39,7 @@ const maxPaid = computed(() =>
 
 <template>
   <div class="stack">
-    <h1 class="page-title">الإحصائيات</h1>
+    <PageHeader title="الإحصائيات" icon="chart" :refreshing="refreshing" @refresh="reload" />
 
     <div class="card filters">
       <div class="field">

@@ -46,6 +46,12 @@ const icons: Record<string, string> = {
     '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   edit:
     '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  back: '<path d="m9 18 6-6-6-6"/>',
+  refresh:
+    '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+  filter: '<path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/>',
   scale:
     '<path d="M12 3v18"/><path d="M8 21h8"/><path d="m3 8 4-4 4 4"/><path d="M7 4v6a5 5 0 0 1-4 4.9"/><path d="M11 14.9A5 5 0 0 1 7 10"/><path d="m13 8 4-4 4 4"/>',
 }

@@ -83,7 +83,7 @@ function errMsg(e: unknown): string {
         </div>
         <p v-if="error" class="text-danger msg">{{ error }}</p>
         <button class="btn btn-primary full" :disabled="loading">
-          {{ loading ? '...' : 'إنشاء' }}
+          <span v-if="loading" class="spinner sm" /><template v-else>إنشاء</template>
         </button>
       </form>
 
@@ -98,7 +98,7 @@ function errMsg(e: unknown): string {
         </div>
         <p v-if="error" class="text-danger msg">{{ error }}</p>
         <button class="btn btn-primary full" :disabled="loading">
-          {{ loading ? '...' : 'انضمام' }}
+          <span v-if="loading" class="spinner sm" /><template v-else>انضمام</template>
         </button>
       </form>
     </div>
